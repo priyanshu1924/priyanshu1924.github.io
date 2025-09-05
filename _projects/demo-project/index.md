@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Midnight Sun Battery box
-description:  (I have never been employed by / affiliated with SpaceX. This is for demo use only) 
+description:
     Developing the battery box for midsun came with multiple setbacks and problems, since I was tring to build teh battery box with a more servicable outlook. The battery box included modules which function like hardrive trays. Additionally to reduce the scrap rate of our battery box I designed and tested hundreds of cell level fuses to get the right thickness. Lastly, to allow our driver to drive with piece of mind I created a mounting solution for the battery box which was validated with FEA to be able to withstand 5G of force.
 skills: 
   - Structural analysis
@@ -28,8 +28,8 @@ Use this to have subsection if needed
 
 ## Embedding images 
 ### External images
-{% include image-gallery.html images="https://live.staticflickr.com/65535/52821641477_d397e56bc4_k.jpg, https://live.staticflickr.com/65535/52822650673_f074b20d90_k.jpg" height="400"%}
-<span style="font-size: 10px">"Starship Test Flight Mission" from https://www.flickr.com/photos/spacex/52821641477/</span>  
+main-image: /Cellfusetesing.jpg
+
 You can put in multiple entries. All images will be at a fixed height in the same row. With smaller window, they will switch to columns.  
 
 ### Embeed images
@@ -82,8 +82,130 @@ end
 ```
 
 ```python
-def start()
-  print("time to start!")
+import sys
+import time
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QPushButton, QLabel,
+    QVBoxLayout, QWidget
+)
+from PyQt6.QtCore import QTimer
+import pyvisa
+import openpyxl
+from datetime import datetime
+
+
+class ShuntLogger(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Shunt Voltage Logger")
+
+        self.dmm = None
+        self.timer = QTimer()
+        self.timer.setInterval(100)  # 100 ms
+        self.timer.timeout.connect(self.read_voltage)
+
+        self.voltage_label = QLabel("Voltage: --- V")
+        self.current_label = QLabel("Current: --- A")
+        self.status_label = QLabel("Status: Idle")
+
+        self.start_button = QPushButton("Start Logging")
+        self.stop_button = QPushButton("Stop Logging")
+        self.stop_button.setEnabled(False)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.voltage_label)
+        layout.addWidget(self.current_label)
+        layout.addWidget(self.status_label)
+        layout.addWidget(self.start_button)
+        layout.addWidget(self.stop_button)
+
+        container = QWidget()
+        container.setLayout(layout)
+        self.setCentralWidget(container)
+
+        self.start_button.clicked.connect(self.start_logging)
+        self.stop_button.clicked.connect(self.stop_logging)
+
+        self.rm = pyvisa.ResourceManager()
+        self.wb = None
+        self.ws = None
+        self.start_time = None
+
+    def start_logging(self):
+        try:
+            self.status_label.setText("Status: Connecting...")
+            resources = self.rm.list_resources()
+            agilent = [r for r in resources if "0x0957" in r]
+            if not agilent:
+                self.status_label.setText("Status: No Agilent multimeter found")
+                return
+            self.dmm = self.rm.open_resource(agilent[0])
+            self.dmm.write("*RST")
+            self.dmm.write("CONF:VOLT:DC 10")
+            self.dmm.write("VOLT:DC:NPLC 0.02")
+
+            self.wb = openpyxl.Workbook()
+            self.ws = self.wb.active
+            self.ws.title = "Shunt Voltage Log"
+            self.ws.append(["Time (s)", "Voltage (V)", "Current (A)"])
+
+            self.start_time = time.time()
+            self.timer.start()
+            self.start_button.setEnabled(False)
+            self.stop_button.setEnabled(True)
+            self.status_label.setText("Status: Logging")
+
+        except Exception as e:
+            self.status_label.setText(f"Status: Error - {e}")
+
+    def stop_logging(self):
+        self.timer.stop()
+        self.start_button.setEnabled(True)
+        self.stop_button.setEnabled(False)
+        self.status_label.setText("Status: Saving")
+
+        try:
+            if self.wb:
+                filename = f"shunt_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                self.wb.save(filename)
+                self.status_label.setText(f"Saved: {filename}")
+        except Exception as e:
+            self.status_label.setText(f"Error saving file: {e}")
+
+        if self.dmm:
+            try:
+                self.dmm.close()
+            except:
+                pass
+
+    def read_voltage(self):
+        try:
+            voltage = float(self.dmm.query("READ?"))
+            if abs(voltage) < 0.001:
+                voltage = 0.0
+
+            current = voltage / 0.001667  # based on 50mV = 30A shunt
+            elapsed_time = round(time.time() - self.start_time, 3)
+
+            self.ws.append([elapsed_time, voltage, current])
+
+            self.voltage_label.setText(f"Voltage: {voltage:.6f} V")
+            self.current_label.setText(f"Current: {current:.2f} A")
+        except Exception as e:
+            self.status_label.setText(f"Error: {e}")
+            self.timer.stop()
+
+
+def main():
+    app = QApplication(sys.argv)
+    window = ShuntLogger()
+    window.show()
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()
+
 ```
 
 ```javascript
