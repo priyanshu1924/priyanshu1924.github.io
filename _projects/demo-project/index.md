@@ -1,18 +1,20 @@
 ---
 layout: post
-title: Super Heavy Booster Catch (Demo Only)
+title: Midnight Sun Battery box
 description:  (I have never been employed by / affiliated with SpaceX. This is for demo use only) 
-    Developing the Super Heavy booster catch project involves designing a robust launch tower with "chopstick" arms, advanced control systems for precise booster alignment, and integrating sophisticated software for real-time trajectory adjustments and structural engineering to handle immense forces.
+    Developing the battery box for midsun came with multiple setbacks and problems, since I was tring to build teh battery box with a more servicable outlook. The battery box included modules which function like hardrive trays. Additionally to reduce the scrap rate of our battery box I designed and tested hundreds of cell level fuses to get the right thickness. Lastly, to allow our driver to drive with piece of mind I created a mounting solution for the battery box which was validated with FEA to be able to withstand 5G of force.
 skills: 
   - Structural analysis
-  - Aerodynamic design
-  - Propulsion system integration
-  - Control Algorithem 
-  - Welding
-  - Metal forming
+  - 3D printing 
+  - Spotwelding 
+  - Carbon fiber manufacturing
+  - Mold design 
+  - Electrical simulation
+  - Equipment testing 
+  - Firmware development
   - Thermal simulation
 
-main-image: /project2.jpg
+main-image: /Car.jpg
 ---
 
 ---
